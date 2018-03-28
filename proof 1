@@ -1,0 +1,96 @@
+#define maxNchars 8 //ARRAY SIZE
+
+struct  AlphaBet
+{
+  const char Mean[maxNchars] =
+  {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+  const uint8_t  Freq[maxNchars] =
+  {440, 494, 523, 587, 659, 698, 784, 880};
+};
+
+
+String inputString = "";         // a String to hold incoming data
+boolean stringComplete = false;  // whether the string is complete
+AlphaBet abc;
+int index = 0;
+int tonePin = 9;
+int toneDuration = 500;
+int freqFactor = 25;
+int freqM;
+int interruptPin = 2;
+volatile float frequency;
+float Measure;
+unsigned long startTime = 0;  //Timers for measuring each cycle
+unsigned long endTime = 0;
+unsigned long totalTime = 0;
+int irEmitterPin = 3;
+
+void setup() {
+  // initialize serial:
+  Serial.begin(9600);
+  // reserve 200 bytes for the inputString:
+  inputString.reserve(200);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), pulseMeasure, RISING);  //Attaching interrupt as RISING
+}
+
+void loop() { 
+// print the string when a newline arrives:
+
+  if (stringComplete) {
+    Serial.print("Got input: ");
+    Serial.println(inputString);
+ 
+    for (index = 0; index < sizeof(abc.Mean); index++) {
+      if (abc.Mean[index] == inputString[0]) {
+        break;
+      }
+    }
+    Serial.print("Found in position: ");
+    Serial.println(index);
+   
+
+    
+    tone(tonePin, abc.Freq[index], toneDuration);
+    
+    delay(toneDuration * 2);
+
+    Serial.println(frequency);
+    
+    // clear the string:
+    inputString = "";
+    stringComplete = false;
+  }
+
+ }
+
+/*
+  SerialEvent occurs whenever a new data comes in the hardware serial RX. This
+  routine is run between each time loop() runs, so using delay inside loop can
+  delay response. Multiple bytes of data may be available.
+*/
+void serialEvent() {
+  while (Serial.available()) {
+    // get the new byte:
+    char inChar = (char)Serial.read();
+    // add it to the inputString:
+    inputString += inChar;
+    // if the incoming character is a newline, set a flag so the main loop can
+    // do something about it:
+    if (inChar == '\n') {
+      stringComplete = true;
+    }
+  }
+}
+
+void pulseMeasure() {
+  endTime = micros(); //Check the timer as soon as it gets interrupted
+  totalTime = endTime - startTime;
+  startTime = micros(); //Restart time measurement
+  frequency = 1/(totalTime); 
+  //Serial.println(frequency);
+  
+  /*endTime = micros(); //Check the timer as soon as it gets interrupted
+  totalTime = endTime - startTime;
+  startTime = micros(); //Restart time measurement
+  timeDuration = totalTime; */
+}
